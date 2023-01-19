@@ -94,5 +94,8 @@ class install():
             self.install(arg)
 
 while True:
-    gamer = input('Type your packages separated by a space:\n')
-    install().main(gamer)
+    try:
+        gamer = input('Type your packages separated by a space:\n')
+        install().main(gamer)
+    except KeyboardInterrupt:
+        print('Cancelling install.')
