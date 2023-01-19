@@ -4,6 +4,6 @@ This is a program to automate installing things on an Arch system. I was frustra
 # Usage
 To install, just download the zip folder and unzip it with a program of your choice. <br>
 Next, run the `main.py` file in the folder. <br>
-You will be given a choice if you are ready to install a package <br>
+A prompt will appear, you will have to type the package name(s) separated by a sapce. <br>
 If you continued, you will have to type the package name or its package site on `archlinux.org`. <br>
 If all goes well, hopefully it will install it without any errors!

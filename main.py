@@ -1,44 +1,98 @@
-from getinfo import get_info
-from getsource import get_source
+import requests
+import json
 import subprocess
 import os
 
-def install(pkg,*args):
-    link = get_info('link', pkg) if not '.org' in pkg else pkg
-    if link is None:
-        print(f"Couldn't find link for {pkg}")
-        return
-    src = get_source(link)
-    name = pkg if not '.org' in pkg else get_info('name', link)
-    depends = get_info('depends', name) or None
-    on_pacman = get_info('pacman', name)
-    installed = get_info('installed', name) if 'is_dependency' in args else False
-    if installed:
-        print(f"{name} already installed")
-        return
-    if depends is not None and len(depends) != 0:
-        print(f"Found {len(depends)} dependencies")
-        for dependency in depends:
-            if get_info('installed', dependency):
-                print(f'Dependency {dependency} is already installed')
-                continue
-            install(dependency,'is_dependency')
-    if src is None:
-        print(f"Could not find source for {pkg}")
-        return
-    if not on_pacman:
-        print(f"{name} not found on pacman")
-        command = f'cd {os.path.abspath(os.getcwd())};git clone {src};cd {name};makepkg -si --noconfirm;cd ..;rm -r -d -f {name}' if 'aur' in link else f'curl -JLO {src};sudo pacman -U --noconfirm download;rm download'
-    else:
-        print(f"found {name} on pacman")
-        command = f'sudo pacman -S --needed --noconfirm {name}'
-    print("Running command")
-    subprocess.run(command,shell=True)
+def run_shell(args):
+    result = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    sdata = result.communicate()[0]
+    code = result.returncode
+    return True if code == 0 else False
+
+def get(url):
+    return json.loads(requests.get(url).text)
+
+class install():
+    def __init__(self):
+        self.api = ['https://www.archlinux.org/packages/search/json?name=','https://www.archlinux.org/packages/','https://aur.archlinux.org/rpc/?v=5&type=info&arg=','https://aur.archlinux.org/packages/','https://archlinux.org/packages/search/json/?name=','https://aur.archlinux.org/rpc/v5/info/']
+
+    def get_name(self,link):
+        return os.path.basename(os.path.dirname(link.rstrip("/")))
+
+    def is_link(self,pkg):
+        return True if 'archlinux.org' in pkg else False
+
+    def get_link(self,name,repo):
+        if repo == 2:
+            data = get(self.api[0]+name)['results'][0]
+            return f"{self.api[1]}{data['repo']}/{data['arch']}/{data['pkgname']}/"
+        else:
+            data = get(self.api[2]+name)['results'][0]['Name']
+            return self.api[3]+data
+
+    def get_depends(self,name):
+        data = get(self.api[5]+name)['results'][0]
+        try:
+            return data['Depends'],data['Conflicts']
+        except:
+            return None
+    
+    def is_installed(self,name):
+        return run_shell(["pacman", "-Qi", name])
+
+    def package_exists(self,pkgname):
+        if run_shell(["pacman", "-Ss", f"^{pkgname}$"]) == True:
+            return 1
+        if get(self.api[0]+pkgname)['results'] != []:
+            return 2
+        if get(self.api[2]+pkgname)['results'] != []:
+            return 3
+        return None
+
+    def install(self, pkg):
+        islink = self.is_link(pkg)
+        pkg_name = pkg if not islink else self.get_name(pkg)
+        if self.is_installed(pkg_name):
+            print(f'{pkg_name} is already installed.')
+            return
+        results = self.package_exists(pkg_name)
+        if not results:
+            print(f'{pkg_name} not found.')
+            return
+        if results == 1:
+            print(f'Found {pkg_name} on pacman.')
+            subprocess.run(f'sudo pacman -S --needed --noconfirm {pkg_name}',shell=True)
+            return
+        depends,conflicts = self.get_depends(pkg_name)
+        if depends != None:
+            print(f'Found {len(depends)} dependencies')
+            for depend in depends:
+                if '=' in depend:
+                    self.install(depend.split('=')[0])
+                else:
+                    self.install(depend)
+        if conflicts != None:
+            for conflict in conflicts:
+                if self.is_installed(conflict):
+                    if input(f'{conflict} conflicts with package! Remove? (Y/N)\n').lower().startswith('y'):
+                        subprocess.run(f'sudo pacman -Rdd {conflict}',shell=True)
+                    else:
+                        print('Conflicting package not removed. Cancelling build.')
+                        return
+        link = pkg if islink else self.get_link(pkg_name,results)
+        src = (link+'download' if link.endswith('/') else link+'/download') if results == 2 else ('https://aur.archlinux.org/'+pkg_name+'.git')
+        if results == 2:
+            print('Found on normal repo.')
+            subprocess.run(f'curl -JLO {src};sudo pacman -U --noconfirm download;rm download',shell=True)
+        else:
+            print('Found on AUR repo.')
+            subprocess.run(f'cd {os.path.abspath(os.getcwd())};git clone {src};cd {pkg_name};makepkg -si --noconfirm;cd ..;rm -r -d -f {pkg_name}',shell=True)
+            
+    def main(self,text):
+        args = text.split(' ')
+        for arg in args:
+            self.install(arg)
 
 while True:
-    go = input("Would you like to install a package? (Y/N)\n").lower()
-    if "y" in go:
-        install(input("Type package name or archlinux.org package link.\n"))
-    else:
-        print("Process cancelled")
-        exit()
+    gamer = input('Type your packages separated by a space:\n')
+    install().main(gamer)
