@@ -32,10 +32,16 @@ class install():
 
     def get_depends(self,name):
         data = get(self.api[5]+name)['results'][0]
+        deps,conflicts = None,None
         try:
-            return data['Depends'],data['Conflicts']
+            deps = data['Depends']
         except:
-            return None
+            pass
+        try:
+            conflicts = data['Conflicts']
+        except:
+            pass
+        return deps,conflicts
     
     def is_installed(self,name):
         return run_shell(["pacman", "-Qi", name])
