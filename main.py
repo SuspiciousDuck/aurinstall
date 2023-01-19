@@ -99,3 +99,4 @@ while True:
         install().main(gamer)
     except KeyboardInterrupt:
         print('Cancelling install.')
+        exit()
