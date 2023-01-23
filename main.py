@@ -111,7 +111,7 @@ class install():
             subprocess.run(f'curl -JLO {src};sudo pacman -U --noconfirm download;rm download',shell=True)
         else:
             print('Found on AUR repo.')
-            subprocess.run(f'cd {os.path.abspath(os.getcwd())};git clone {src};cd {pkg_name};makepkg -m --noconfirm;cd ..;rm -r -d -f {pkg_name}',shell=True)
+            subprocess.run(f'cd {os.path.abspath(os.getcwd())};git clone {src};cd {pkg_name};makepkg -si -m --noconfirm;cd ..;rm -r -d -f {pkg_name}',shell=True)
             
     def main(self,text,which):
         args = text.split(' ')
