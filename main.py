@@ -31,17 +31,18 @@ class install():
             data = get(self.api[2]+name)['results'][0]['Name']
             return self.api[3]+data
 
-    def get_depends(self,name):
-        data = get(self.api[5]+name)['results'][0]
+    def get_depends(self,name,repo):
         deps,conflicts = None,None
-        try:
-            deps = data['Depends']
-        except:
-            pass
-        try:
-            conflicts = data['Conflicts']
-        except:
-            pass
+        if repo == 3:
+            data = get(self.api[5]+name)['results'][0]
+            deps = data['Depends'] if 'Depends' in data else None
+            deps = deps+data['MakeDepends'] if deps != None and 'MakeDepends' in data else None
+            conflicts = data['Conflicts'] if 'Conflicts' in data else None
+        else:
+            data = get(self.api[0]+name)['results'][0]
+            deps = data['depends'] if len(data['depends']) != 0 else None
+            deps = deps+data['makedepends'] if deps != None and len(data['makedepends']) != 0 else None
+            conflicts = data['conflicts'] if len(data['conflicts']) != 0 else None
         return deps,conflicts
     
     def is_installed(self,name):
@@ -87,7 +88,7 @@ class install():
             print(f'Found {pkg_name} on pacman.')
             subprocess.run(f'sudo pacman -S --needed --noconfirm {pkg_name}',shell=True)
             return
-        depends,conflicts = self.get_depends(pkg_name)
+        depends,conflicts = self.get_depends(pkg_name,results)
         if depends != None:
             print(f'Found {len(depends)} dependencies')
             for depend in depends:
@@ -127,7 +128,10 @@ parser.add_argument('--uninstall', nargs='+', help='Uninstall package(s)')
 parser.set_defaults(func=install().main)
 args = parser.parse_args()
 
-if args.install:
-    args.func(' '.join(args.install),'install')
-if args.uninstall:
-    args.func(' '.join(args.uninstall),'uninstall')
+try:
+    if args.install:
+        args.func(' '.join(args.install),'install')
+    if args.uninstall:
+        args.func(' '.join(args.uninstall),'uninstall')
+except KeyboardInterrupt:
+    print('\nCancelling action')
