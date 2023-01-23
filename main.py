@@ -2,6 +2,7 @@ import requests
 import json
 import subprocess
 import os
+import argparse
 
 def run_shell(args):
     result = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
@@ -55,6 +56,23 @@ class install():
             return 3
         return None
 
+    def remove(self, pkg):
+        islink = self.is_link(pkg)
+        pkg_name = pkg if not islink else self.get_name(pkg)
+        if self.is_installed(pkg_name) == False:
+            print(f'{pkg_name} is not installed.')
+            return
+        print(f'Removing {pkg_name}')
+        output = subprocess.check_output(["pacman", "-Qi", pkg_name])
+        if "Depends On" in output.decode():
+            response = input(f"{pkg_name} is required by another package. Delete anyway? (Y/N)\n").lower()
+            if 'y' in response:
+                subprocess.run(f'sudo pacman -Rdd --noconfirm {pkg_name}',shell=True)
+            else:
+                return
+        else:
+            subprocess.run(f'sudo pacman -R --noconfirm {pkg_name}',shell=True)
+    
     def install(self, pkg):
         islink = self.is_link(pkg)
         pkg_name = pkg if not islink else self.get_name(pkg)
@@ -92,17 +110,24 @@ class install():
             subprocess.run(f'curl -JLO {src};sudo pacman -U --noconfirm download;rm download',shell=True)
         else:
             print('Found on AUR repo.')
-            subprocess.run(f'cd {os.path.abspath(os.getcwd())};git clone {src};cd {pkg_name};makepkg -si --noconfirm;cd ..;rm -r -d -f {pkg_name}',shell=True)
+            subprocess.run(f'cd {os.path.abspath(os.getcwd())};git clone {src};cd {pkg_name};makepkg -m --noconfirm;cd ..;rm -r -d -f {pkg_name}',shell=True)
             
-    def main(self,text):
+    def main(self,text,which):
         args = text.split(' ')
         for arg in args:
-            self.install(arg)
+            if which == 'install':
+                self.install(arg)
+            else:
+                self.remove(arg)
 
-while True:
-    try:
-        gamer = input('Type your packages separated by a space:\n')
-        install().main(gamer)
-    except KeyboardInterrupt:
-        print('Cancelling install.')
-        exit()
+parser = argparse.ArgumentParser(description='My Package Manager')
+parser.add_argument('--install', nargs='+', help='Install package(s)')
+parser.set_defaults(func=install().main)
+parser.add_argument('--uninstall', nargs='+', help='Uninstall package(s)')
+parser.set_defaults(func=install().main)
+args = parser.parse_args()
+
+if args.install:
+    args.func(' '.join(args.install),'install')
+if args.uninstall:
+    args.func(' '.join(args.uninstall),'uninstall')

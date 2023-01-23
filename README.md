@@ -3,7 +3,7 @@ This is a program to automate installing things on an Arch system. I was frustra
 
 # Usage
 To install, just download the zip folder and unzip it with a program of your choice. <br>
-Next, run the `main.py` file in the folder. <br>
-A prompt will appear, you will have to type the package name(s) separated by a sapce. <br>
-If you continued, you will have to type the package name or its package site on `archlinux.org`. <br>
-If all goes well, hopefully it will install it without any errors!
+Next, run the `main.py` file in the folder with arguments. <br>
+For example, you'd run `python main.py --install ffmpeg` <br>
+Hopefully, if all goes well, it should properly install <br>
+Although this was made with the intent to automate, you may have to enter the root password, or choose to remove a conflicting package. <br>
