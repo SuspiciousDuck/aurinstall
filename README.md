@@ -1,5 +1,6 @@
 # aurinstall
-This is a program to automate installing things on an Arch system. I was frustrated having to manually install things that were not on pacman when installing things like ffmpeg-full. With this, it is completely automated! There are likely plenty bugs with this, as it's just a small side project and I have only tested this on my machine.
+This is a program to automate installing things on an Arch system. I was frustrated having to manually install things that were not on pacman when installing things like ffmpeg-full. With this, it is completely automated! There are likely plenty bugs with this, as it's just a small side project and I have only tested this on my machine.<br>
+update: I made this before I found out that yay exists
 
 # Usage
 To install, just download the zip folder and unzip it with a program of your choice. <br>
